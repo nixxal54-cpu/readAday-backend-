@@ -97,7 +97,7 @@ If you prefer configuring the Web Service manually:
    - **Runtime**: `Node`
    - **Build Command**:
      ```bash
-     npm install && npm run build
+     npm install --legacy-peer-deps && npm run build
      ```
    - **Start Command**:
      ```bash

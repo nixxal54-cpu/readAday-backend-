@@ -10,7 +10,7 @@ services:
     runtime: node
     plan: starter
     region: oregon
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
@@ -41,7 +41,7 @@ services:
     plan: starter
     region: oregon
     schedule: "*/5 * * * *"
-    buildCommand: npm install
+    buildCommand: npm install --legacy-peer-deps
     startCommand: npm run cron:publish
     envVars:
       - key: NODE_ENV
@@ -63,7 +63,7 @@ services:
     plan: starter
     region: oregon
     schedule: "*/30 * * * *"
-    buildCommand: npm install
+    buildCommand: npm install --legacy-peer-deps
     startCommand: npm run cron:news
     envVars:
       - key: NODE_ENV

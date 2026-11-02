@@ -19,6 +19,7 @@ import {
   Comment,
   ContentReport,
   NewsSource,
+  ProviderSyncLog,
 } from './types.ts';
 
 export class BackendStore {
@@ -38,6 +39,7 @@ export class BackendStore {
   public follows: Set<string> = new Set(); // `${followerId}_${authorId}`
   public contentReports: Map<string, ContentReport> = new Map();
   public newsSources: Map<string, NewsSource> = new Map();
+  public providerSyncLogs: Map<string, ProviderSyncLog> = new Map();
 
   constructor() {
     this.seedInitialData();
@@ -481,6 +483,259 @@ export class BackendStore {
         commentCount: 0,
         createdAt: '2026-10-31T09:00:00Z',
         updatedAt: '2026-10-31T09:00:00Z',
+      },
+
+      // COMMUNITY (Sourced from DEV Community real provider)
+      {
+        id: 'art-com-3',
+        contentType: 'community',
+        status: 'published',
+        title: 'Architecting Deterministic State Machines in Modern Systems Programming',
+        slug: 'architecting-deterministic-state-machines',
+        summary: 'How explicit event modeling, pure state transitions, and compile-time state guarantees prevent distributed consensus race conditions.',
+        content: `
+<div class="readaday-community-post">
+  <p class="summary-lead text-base text-slate-200 mb-4 leading-relaxed font-sans">
+    State explosion and concurrency races remain the primary sources of distributed failures. By leveraging algebraic data types and deterministic event loops, modern systems engineers achieve verifiable state safety.
+  </p>
+  <div class="readaday-attribution-card p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-300 my-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">DEV Community Syndication</span>
+      <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">Open Community License</span>
+    </div>
+    <p class="mt-2 text-sm text-slate-400">Published by community engineer on <strong>DEV Community</strong>.</p>
+    <a href="https://dev.to/engineering/state-machines" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-amber-400 hover:text-amber-300 text-sm font-medium hover:underline">
+      View original publication on DEV &rarr;
+    </a>
+  </div>
+</div>
+        `.trim(),
+        coverImageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80',
+        authorId: 'provider-devto',
+        authorName: 'Alex Thorne (DEV Community)',
+        categoryId: 'cat-2',
+        categoryName: 'Technology & AI',
+        categorySlug: 'technology-ai',
+        tags: ['community', 'devto', 'systems-design', 'architecture'],
+        readingTimeMinutes: 7,
+        publishedAt: '2026-10-30T14:00:00Z',
+        sourcePublisher: 'DEV Community',
+        originalUrl: 'https://dev.to/engineering/state-machines',
+        contentRights: 'fair_use_summary',
+        dedupHash: 'hash_devto_statemachines',
+        fullContentPermitted: false,
+        viewCount: 680,
+        likeCount: 142,
+        bookmarkCount: 88,
+        commentCount: 14,
+        createdAt: '2026-10-30T14:00:00Z',
+        updatedAt: '2026-10-30T14:00:00Z',
+      },
+
+      // DISCOVER (Scientific Research & Scholarly Preprints via arXiv & Wikipedia)
+      {
+        id: 'art-disc-1',
+        contentType: 'discover',
+        status: 'published',
+        title: 'Attention Is Not All You Need: Sub-Quadratic Memory in Recurrent State Spaces',
+        slug: 'attention-subquadratic-memory-state-spaces',
+        summary: 'A formal inquiry into constant-memory sequence modeling, structured state-space models (SSMs), and their biological plausibility in cortical circuits.',
+        content: `
+<div class="readaday-research-paper">
+  <div class="abstract-section p-4 rounded bg-slate-900/40 border-l-4 border-amber-500 mb-6">
+    <h3 class="text-sm font-bold uppercase text-amber-400 tracking-wider mb-2">arXiv Preprint Abstract</h3>
+    <p class="text-slate-200 leading-relaxed font-serif text-base">
+      While transformer architectures have established empirical supremacy across sequence tasks, their quadratic computational complexity impedes long-horizon reasoning. We demonstrate that continuous-time state-space models with diagonalized transition matrices achieve equivalent recall benchmarks while maintaining strict O(1) inference memory.
+    </p>
+  </div>
+  <div class="readaday-attribution-card p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-300 my-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Open Access Repository</span>
+      <span class="text-xs px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800">arXiv: 2403.09123</span>
+    </div>
+    <p class="mt-2 text-sm text-slate-400">Published on <strong>arXiv</strong> by <em>Dr. Kira Vance, Liam Zhang et al.</em> Primary subject: <code>cs.AI</code>.</p>
+    <a href="https://arxiv.org/abs/2403.09123" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-amber-400 hover:text-amber-300 text-sm font-medium hover:underline">
+      View arXiv Abstract & Full Paper &rarr;
+    </a>
+  </div>
+</div>
+        `.trim(),
+        coverImageUrl: 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=1200&q=80',
+        authorId: 'provider-arxiv',
+        authorName: 'Dr. Kira Vance (arXiv)',
+        categoryId: 'cat-4',
+        categoryName: 'Science & Nature',
+        categorySlug: 'science-cosmos',
+        tags: ['research', 'preprint', 'arxiv', 'transformers-llm', 'cs.ai'],
+        readingTimeMinutes: 8,
+        publishedAt: '2026-10-27T10:00:00Z',
+        sourcePublisher: 'arXiv.org',
+        originalUrl: 'https://arxiv.org/abs/2403.09123',
+        contentRights: 'fair_use_summary',
+        dedupHash: 'hash_arxiv_240309123',
+        fullContentPermitted: false,
+        viewCount: 1420,
+        likeCount: 380,
+        bookmarkCount: 290,
+        commentCount: 26,
+        createdAt: '2026-10-27T10:00:00Z',
+        updatedAt: '2026-10-27T10:00:00Z',
+      },
+      {
+        id: 'art-disc-2',
+        contentType: 'discover',
+        status: 'published',
+        title: 'Synaptic Plasticity: The Biophysical Substrate of Working Memory and Conceptual Synthesis',
+        slug: 'synaptic-plasticity-biophysical-substrate',
+        summary: 'In neuroscience, synaptic plasticity is the ability of synapses to strengthen or weaken over time in response to increases or decreases in their activity.',
+        content: `
+<div class="readaday-encyclopedic-entry">
+  <div class="prose max-w-none text-slate-200 leading-relaxed font-serif text-base mb-6">
+    <p class="summary-lead text-lg mb-4 text-slate-100 font-serif">
+      Synaptic plasticity is the biological foundation of both memory storage and deliberate learning. Long-term potentiation (LTP) and long-term depression (LTD) regulate synaptic transmission strength across dendritic spines.
+    </p>
+    <p class="text-slate-300">
+      Discovered by Donald Hebb in 1949 and experimentally confirmed by Terje Lømo in 1966, activity-dependent plasticity demonstrates that cognitive synthesis directly restructures neural wiring.
+    </p>
+  </div>
+  <div class="readaday-attribution-card p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-300 my-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Creative Commons Knowledge</span>
+      <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">CC BY-SA 4.0</span>
+    </div>
+    <p class="mt-2 text-sm text-slate-400">
+      Text syndicated from <strong>Wikipedia</strong>, the free encyclopedia, under the Creative Commons Attribution-ShareAlike 4.0 International License.
+    </p>
+    <a href="https://en.wikipedia.org/wiki/Neuroplasticity" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-amber-400 hover:text-amber-300 text-sm font-medium hover:underline">
+      Explore complete article on Wikipedia &rarr;
+    </a>
+  </div>
+</div>
+        `.trim(),
+        coverImageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80',
+        authorId: 'provider-wikipedia',
+        authorName: 'Wikipedia Editors',
+        categoryId: 'cat-1',
+        categoryName: 'Focus & Cognition',
+        categorySlug: 'focus-cognition',
+        tags: ['knowledge', 'encyclopedia', 'neuroplasticity', 'cognition'],
+        readingTimeMinutes: 5,
+        publishedAt: '2026-10-28T09:00:00Z',
+        sourcePublisher: 'Wikipedia',
+        originalUrl: 'https://en.wikipedia.org/wiki/Neuroplasticity',
+        contentRights: 'licensed_full',
+        dedupHash: 'hash_wiki_neuroplasticity',
+        fullContentPermitted: true,
+        viewCount: 2150,
+        likeCount: 520,
+        bookmarkCount: 310,
+        commentCount: 18,
+        createdAt: '2026-10-28T09:00:00Z',
+        updatedAt: '2026-10-28T09:00:00Z',
+      },
+
+      // BOOKS (Public-Domain Literary Canon via Gutendex Project Gutenberg)
+      {
+        id: 'art-book-1',
+        contentType: 'books',
+        status: 'published',
+        title: 'Meditations of Marcus Aurelius',
+        slug: 'meditations-marcus-aurelius',
+        summary: 'A series of personal spiritual reflections and psychological exercises composed by Roman Emperor Marcus Aurelius between 161 and 180 AD.',
+        content: `
+<div class="readaday-book-card p-6 rounded-xl bg-slate-900/80 border border-amber-900/40 text-slate-200 my-6 shadow-xl">
+  <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div>
+      <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Project Gutenberg Canon</span>
+      <span class="ml-2 text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">Public Domain</span>
+    </div>
+    <span class="text-xs text-slate-400">42,800 Downloads</span>
+  </div>
+  <div class="mt-4 prose max-w-none text-slate-300 font-serif leading-relaxed">
+    <p class="text-lg italic text-slate-100 mb-2">Meditations of Marcus Aurelius</p>
+    <p class="text-sm text-slate-400">By <strong>Marcus Aurelius Antoninus (121–180 AD)</strong></p>
+    <p class="text-sm mt-3">
+      "When you arise in the morning think of what a privilege it is to be alive: to think, to enjoy, to love."
+    </p>
+  </div>
+  <div class="mt-6 pt-4 border-t border-slate-800 flex flex-wrap gap-3">
+    <a href="https://www.gutenberg.org/ebooks/2680" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm transition-colors">
+      Read Complete Book Online &rarr;
+    </a>
+  </div>
+</div>
+        `.trim(),
+        coverImageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
+        authorId: 'provider-gutendex',
+        authorName: 'Marcus Aurelius',
+        categoryId: 'cat-5',
+        categoryName: 'Philosophy & Culture',
+        categorySlug: 'philosophy-culture',
+        tags: ['books', 'classics', 'stoic-epistemology', 'philosophy', 'gutenberg'],
+        readingTimeMinutes: 55,
+        publishedAt: '1920-01-01T00:00:00Z',
+        sourcePublisher: 'Project Gutenberg',
+        originalUrl: 'https://www.gutenberg.org/ebooks/2680',
+        contentRights: 'licensed_full',
+        dedupHash: 'hash_gutenberg_2680',
+        fullContentPermitted: true,
+        viewCount: 4200,
+        likeCount: 1650,
+        bookmarkCount: 1120,
+        commentCount: 95,
+        createdAt: '2026-10-25T00:00:00Z',
+        updatedAt: '2026-10-25T00:00:00Z',
+      },
+      {
+        id: 'art-book-2',
+        contentType: 'books',
+        status: 'published',
+        title: 'Frankenstein; Or, The Modern Prometheus',
+        slug: 'frankenstein-modern-prometheus',
+        summary: 'Mary Wollstonecraft Shelley\'s seminal 1818 masterpiece warning of unrestrained hubris in the dawn of synthetic creation.',
+        content: `
+<div class="readaday-book-card p-6 rounded-xl bg-slate-900/80 border border-amber-900/40 text-slate-200 my-6 shadow-xl">
+  <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div>
+      <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Project Gutenberg Canon</span>
+      <span class="ml-2 text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">Public Domain</span>
+    </div>
+    <span class="text-xs text-slate-400">38,100 Downloads</span>
+  </div>
+  <div class="mt-4 prose max-w-none text-slate-300 font-serif leading-relaxed">
+    <p class="text-lg italic text-slate-100 mb-2">Frankenstein; Or, The Modern Prometheus</p>
+    <p class="text-sm text-slate-400">By <strong>Mary Wollstonecraft Shelley (1797–1851)</strong></p>
+    <p class="text-sm mt-3">
+      The defining mythos of modern science and artificial life, examining responsibility, isolation, and humanity.
+    </p>
+  </div>
+  <div class="mt-6 pt-4 border-t border-slate-800 flex flex-wrap gap-3">
+    <a href="https://www.gutenberg.org/ebooks/84" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm transition-colors">
+      Read Complete Book Online &rarr;
+    </a>
+  </div>
+</div>
+        `.trim(),
+        coverImageUrl: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80',
+        authorId: 'provider-gutendex',
+        authorName: 'Mary Wollstonecraft Shelley',
+        categoryId: 'cat-3',
+        categoryName: 'Literature & Essays',
+        categorySlug: 'literature-essays',
+        tags: ['books', 'classics', 'literature', 'gutenberg', 'science-fiction'],
+        readingTimeMinutes: 70,
+        publishedAt: '1920-01-01T00:00:00Z',
+        sourcePublisher: 'Project Gutenberg',
+        originalUrl: 'https://www.gutenberg.org/ebooks/84',
+        contentRights: 'licensed_full',
+        dedupHash: 'hash_gutenberg_84',
+        fullContentPermitted: true,
+        viewCount: 3890,
+        likeCount: 1320,
+        bookmarkCount: 940,
+        commentCount: 68,
+        createdAt: '2026-10-25T00:00:00Z',
+        updatedAt: '2026-10-25T00:00:00Z',
       },
     ];
     seedArticles.forEach((a) => this.articles.set(a.id, a));

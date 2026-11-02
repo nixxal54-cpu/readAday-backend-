@@ -12,6 +12,7 @@ import { calculateReadingTime, generateSlug, validateArticleInput } from './logi
 import { exploreRabbitHole, generateRecommendations } from './logic/rabbitHole.ts';
 import { executeNewsIngest } from './rssFetcher.ts';
 import { scheduler } from './scheduler.ts';
+import { providerRegistry } from './providers/providerRegistry.ts';
 
 export const apiRouter = Router();
 
@@ -378,9 +379,13 @@ apiRouter.get('/authors/:id', (req: Request, res: Response) => {
 });
 
 // GET /api/articles
-// Strict Feed Partitioning: ?feed=editorial | news | community
+// Strict Feed Partitioning: ?feed=editorial | news | community | discover | books (or 'latest' for news)
 apiRouter.get('/articles', (req: Request, res: Response) => {
-  const feed = (req.query.feed as ContentType) || 'editorial';
+  let rawFeed = ((req.query.feed as string) || 'editorial').toLowerCase();
+  if (rawFeed === 'latest') {
+    rawFeed = 'news';
+  }
+  const feed = rawFeed as ContentType;
   const category = req.query.category as string;
   const tag = req.query.tag as string;
   const search = req.query.search as string;
@@ -390,8 +395,11 @@ apiRouter.get('/articles', (req: Request, res: Response) => {
   const currentUser = (req as any).currentUser;
 
   // Validate feed param
-  if (!['editorial', 'news', 'community'].includes(feed)) {
-    return res.status(400).json({ error: "Invalid feed parameter. Must be 'editorial', 'news', or 'community'." });
+  const VALID_FEEDS = ['editorial', 'news', 'community', 'discover', 'books'];
+  if (!VALID_FEEDS.includes(feed)) {
+    return res.status(400).json({
+      error: `Invalid feed parameter '${rawFeed}'. Must be one of: ${VALID_FEEDS.join(', ')} (or 'latest').`,
+    });
   }
 
   // RLS Status Visibility Rule:
@@ -425,6 +433,52 @@ apiRouter.get('/articles', (req: Request, res: Response) => {
   // Strict assertion: zero contamination
   assertFeedPurity(feedResult.items, feed);
 
+  res.json(feedResult);
+});
+
+// GET /api/discover (Academic discovery, scientific preprints, and foundational knowledge)
+apiRouter.get('/discover', (req: Request, res: Response) => {
+  const category = req.query.category as string;
+  const tag = req.query.tag as string;
+  const search = req.query.search as string;
+  const page = parseInt((req.query.page as string) || '1', 10);
+  const limit = parseInt((req.query.limit as string) || '10', 10);
+
+  const allArticles = Array.from(store.articles.values());
+  const feedResult = filterFeedArticles(allArticles, {
+    feed: 'discover',
+    category,
+    tag,
+    search,
+    page,
+    limit,
+    status: 'published',
+  });
+
+  assertFeedPurity(feedResult.items, 'discover');
+  res.json(feedResult);
+});
+
+// GET /api/books (Public domain books and literary canon)
+apiRouter.get('/books', (req: Request, res: Response) => {
+  const category = req.query.category as string;
+  const tag = req.query.tag as string;
+  const search = req.query.search as string;
+  const page = parseInt((req.query.page as string) || '1', 10);
+  const limit = parseInt((req.query.limit as string) || '10', 10);
+
+  const allArticles = Array.from(store.articles.values());
+  const feedResult = filterFeedArticles(allArticles, {
+    feed: 'books',
+    category,
+    tag,
+    search,
+    page,
+    limit,
+    status: 'published',
+  });
+
+  assertFeedPurity(feedResult.items, 'books');
   res.json(feedResult);
 });
 
@@ -829,6 +883,118 @@ apiRouter.post('/news/ingest', async (req: Request, res: Response) => {
     success: true,
     message: 'News ingestion completed with copyright rights validation.',
     runs: runReports,
+  });
+});
+
+// ==============================================================================
+// 4B. REAL CONTENT PROVIDERS (10 INTEGRATIONS, HEALTH & SYNC LOGS)
+// ==============================================================================
+
+// GET /api/providers (List all 10 registered providers and their metadata)
+apiRouter.get('/providers', (_req: Request, res: Response) => {
+  const adapters = providerRegistry.getAllAdapters();
+  const healthList = providerRegistry.getHealthStatuses();
+
+  const providers = adapters.map((adapter) => {
+    const health = healthList.find((h) => h.providerId === adapter.id);
+    const isApiKeyConfigured = !adapter.requiresApiKey || Boolean(adapter.envKeyName && process.env[adapter.envKeyName]);
+
+    return {
+      id: adapter.id,
+      name: adapter.name,
+      description: adapter.description,
+      contentIdentity: adapter.contentIdentity,
+      requiresApiKey: adapter.requiresApiKey,
+      envKeyName: adapter.envKeyName,
+      isApiKeyConfigured,
+      status: health?.status || 'healthy',
+      responseTimeMs: health?.responseTimeMs || 0,
+      lastCheckedAt: health?.lastCheckedAt,
+      lastSyncAt: health?.lastSyncAt,
+    };
+  });
+
+  res.json({
+    total: providers.length,
+    providers,
+  });
+});
+
+// GET /api/providers/health (Active probe or cached health metrics across all 10 adapters)
+apiRouter.get('/providers/health', async (req: Request, res: Response) => {
+  const refresh = req.query.refresh === 'true';
+
+  let healthStatuses;
+  if (refresh) {
+    healthStatuses = await providerRegistry.checkAllHealth();
+  } else {
+    healthStatuses = providerRegistry.getHealthStatuses();
+  }
+
+  const healthyCount = healthStatuses.filter((h) => h.status === 'healthy').length;
+  const degradedCount = healthStatuses.filter((h) => h.status === 'degraded').length;
+  const downCount = healthStatuses.filter((h) => h.status === 'down').length;
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    overallStatus: downCount > 4 ? 'degraded' : 'healthy',
+    summary: {
+      total: healthStatuses.length,
+      healthy: healthyCount,
+      degraded: degradedCount,
+      down: downCount,
+    },
+    providers: healthStatuses,
+  });
+});
+
+// POST /api/providers/sync (Trigger on-demand sync for a specific provider or all providers)
+apiRouter.post('/providers/sync', async (req: Request, res: Response) => {
+  const providerId = req.query.provider as any;
+  const { query, category, limit } = req.body || {};
+
+  if (providerId && providerId !== 'all') {
+    const adapter = providerRegistry.getAdapter(providerId);
+    if (!adapter) {
+      return res.status(404).json({
+        error: `Provider '${providerId}' not found. Supported: ${providerRegistry
+          .getAllAdapters()
+          .map((a) => a.id)
+          .join(', ')}`,
+      });
+    }
+
+    const log = await providerRegistry.syncProvider(providerId, { query, category, limit });
+    return res.json({
+      success: log.status !== 'failed',
+      syncLog: log,
+      totalArticlesInStore: store.articles.size,
+    });
+  }
+
+  // Sync all 10 providers
+  const logs = await providerRegistry.syncAllProviders({ query, category, limit });
+  const totalIngested = logs.reduce((acc, l) => acc + l.ingestedCount, 0);
+  const totalDuplicates = logs.reduce((acc, l) => acc + l.duplicateCount, 0);
+
+  res.json({
+    success: true,
+    message: 'Multi-provider synchronization run completed.',
+    totalIngested,
+    totalDuplicates,
+    totalArticlesInStore: store.articles.size,
+    logs,
+  });
+});
+
+// GET /api/providers/sync-logs (Retrieve historical sync audit logs)
+apiRouter.get('/providers/sync-logs', (req: Request, res: Response) => {
+  const limit = parseInt((req.query.limit as string) || '50', 10);
+  const logs = providerRegistry.getSyncLogs(limit);
+
+  res.json({
+    total: logs.length,
+    logs,
   });
 });
 

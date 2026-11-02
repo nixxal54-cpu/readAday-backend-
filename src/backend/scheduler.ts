@@ -5,11 +5,13 @@
 
 import { store } from './store.ts';
 import { executeNewsIngest } from './rssFetcher.ts';
+import { providerRegistry } from './providers/providerRegistry.ts';
 
 export interface SchedulerStatus {
   isRunning: boolean;
   lastPublishCheck: string;
   lastNewsPoll: string;
+  lastProviderSync: string;
   publishedCountTotal: number;
   activeTimers: number;
 }
@@ -20,6 +22,7 @@ class BackgroundScheduler {
   private isRunning = false;
   private lastPublishCheck = new Date().toISOString();
   private lastNewsPoll = new Date().toISOString();
+  private lastProviderSync = new Date().toISOString();
   private publishedCountTotal = 0;
 
   public start() {
@@ -79,11 +82,20 @@ class BackgroundScheduler {
     return results;
   }
 
+  public async runProviderSync(providerId?: any): Promise<any> {
+    this.lastProviderSync = new Date().toISOString();
+    if (providerId && providerId !== 'all') {
+      return await providerRegistry.syncProvider(providerId);
+    }
+    return await providerRegistry.syncAllProviders();
+  }
+
   public getStatus(): SchedulerStatus {
     return {
       isRunning: this.isRunning,
       lastPublishCheck: this.lastPublishCheck,
       lastNewsPoll: this.lastNewsPoll,
+      lastProviderSync: this.lastProviderSync,
       publishedCountTotal: this.publishedCountTotal,
       activeTimers: (this.publishIntervalTimer ? 1 : 0) + (this.newsIntervalTimer ? 1 : 0),
     };

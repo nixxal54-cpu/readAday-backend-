@@ -22,11 +22,50 @@ export interface UserProfile {
   updatedAt: string;
 }
 
-export type ContentType = 'editorial' | 'news' | 'community';
+export type ContentType = 'editorial' | 'news' | 'community' | 'discover' | 'books';
+
+export type ContentIdentity = ContentType;
+
+export type ContentProviderId =
+  | 'gdelt'
+  | 'guardian'
+  | 'blogger'
+  | 'rss'
+  | 'devto'
+  | 'hashnode'
+  | 'arxiv'
+  | 'openalex'
+  | 'gutendex'
+  | 'wikipedia';
 
 export type ArticleStatus = 'draft' | 'pending_review' | 'published' | 'rejected' | 'archived' | 'scheduled';
 
 export type ContentRights = 'licensed_full' | 'fair_use_summary' | 'original_reporting' | 'syndicated' | 'snippet_only';
+
+export interface ProviderSyncLog {
+  id: string;
+  providerId: ContentProviderId;
+  status: 'success' | 'partial' | 'failed' | 'rate_limited';
+  fetchedCount: number;
+  ingestedCount: number;
+  duplicateCount: number;
+  errorMessage?: string;
+  durationMs: number;
+  timestamp: string;
+}
+
+export interface ProviderHealth {
+  providerId: ContentProviderId;
+  name: string;
+  contentIdentity: ContentIdentity;
+  status: 'healthy' | 'degraded' | 'down';
+  responseTimeMs: number;
+  requiresApiKey: boolean;
+  isApiKeyConfigured: boolean;
+  lastCheckedAt: string;
+  lastSyncAt?: string;
+  errorMessage?: string;
+}
 
 export interface Article {
   id: string;

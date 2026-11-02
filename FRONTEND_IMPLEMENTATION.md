@@ -160,7 +160,19 @@ Save these in `types/readaday.ts`:
 ```typescript
 export type UserRole = 'reader' | 'writer' | 'editor' | 'admin';
 
-export type ContentType = 'editorial' | 'news' | 'community';
+export type ContentType = 'editorial' | 'news' | 'community' | 'discover' | 'books';
+
+export type ContentProviderId =
+  | 'gdelt'
+  | 'guardian'
+  | 'blogger'
+  | 'rss'
+  | 'devto'
+  | 'hashnode'
+  | 'arxiv'
+  | 'openalex'
+  | 'gutendex'
+  | 'wikipedia';
 
 export type ArticleStatus = 
   | 'draft' 
@@ -176,6 +188,31 @@ export type ContentRights =
   | 'original_reporting' 
   | 'syndicated' 
   | 'snippet_only';
+
+export interface ProviderHealth {
+  providerId: ContentProviderId;
+  name: string;
+  contentIdentity: ContentType;
+  status: 'healthy' | 'degraded' | 'down';
+  responseTimeMs: number;
+  requiresApiKey: boolean;
+  isApiKeyConfigured: boolean;
+  lastCheckedAt: string;
+  lastSyncAt?: string;
+  errorMessage?: string;
+}
+
+export interface ProviderSyncLog {
+  id: string;
+  providerId: ContentProviderId;
+  status: 'success' | 'partial' | 'failed' | 'rate_limited';
+  fetchedCount: number;
+  ingestedCount: number;
+  duplicateCount: number;
+  errorMessage?: string;
+  durationMs: number;
+  timestamp: string;
+}
 
 export interface UserStats {
   articlesCount: number;
@@ -351,19 +388,23 @@ export interface RabbitHoleExplorationResult {
 
 ## 4. Complete API Endpoints Reference
 
-### Content Feeds & Strict Partitioning
+### Content Feeds & Strict Partitioning (5 Dedicated Identities)
 
 > **CRITICAL ARCHITECTURAL RULE**:
-> readAday strictly separates **Editorial**, **News**, and **Community** feeds. They are never mixed together. Always specify `?feed=...` in feed queries.
+> readAday strictly separates all 5 content identities: **Editorial**, **Latest / News**, **Community**, **Discover**, and **Books**. They are never mixed together in feeds.
+> Always specify `?feed=...` in feed queries, or use the dedicated discovery and book endpoints.
 
 #### 1. Get Isolated Content Feed
 ```http
-GET /api/articles?feed={editorial|news|community}
+GET /api/articles?feed={editorial|news|community|discover|books}
+# Note: feed=latest is also accepted as an alias for news
+GET /api/discover
+GET /api/books
 ```
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `feed` | string | **Yes** | `editorial`, `news`, or `community` |
+| `feed` | string | **Yes** | `editorial`, `news` (or `latest`), `community`, `discover`, `books` |
 | `category` | string | No | Filter by category slug |
 | `tag` | string | No | Filter by tag |
 | `search` | string | No | Full-text query across title, summary, author |
@@ -979,6 +1020,126 @@ Content-Type: application/json
   "sourceId": "src-1" // Optional: leave empty to poll all active sources
 }
 ```
+
+---
+
+### Content Providers Integration Layer (10 Real Sources, Health & Sync Logs)
+
+readAday integrates 10 real content providers across 5 content identities:
+1. **GDELT Project 2.0** (`gdelt`) &rarr; Latest Breaking News (`news`)
+2. **The Guardian API** (`guardian`) &rarr; Investigative Journalism (`news`)
+3. **Blogger API** (`blogger`) &rarr; Curated Essays & Long-form (`editorial`)
+4. **RSS Publication Engine** (`rss`) &rarr; Intellectual Journals & Feeds (`editorial`)
+5. **DEV Community API** (`devto`) &rarr; Systems Design & Engineering (`community`)
+6. **Hashnode API** (`hashnode`) &rarr; Developer Publications (`community`)
+7. **arXiv Scientific Repository** (`arxiv`) &rarr; Machine Learning & Physics Preprints (`discover`)
+8. **OpenAlex Scholarly Index** (`openalex`) &rarr; Global Research & Citations (`discover`)
+9. **Gutendex Project Gutenberg** (`gutendex`) &rarr; Public-Domain Literary Canon (`books`)
+10. **Wikipedia Knowledge Graph** (`wikipedia`) &rarr; Foundational Encyclopedic Concepts (`discover`)
+
+#### 33. Get Providers Registry & Configured Status
+```http
+GET /api/providers
+```
+**Sample Response (HTTP 200):**
+```json
+{
+  "total": 10,
+  "providers": [
+    {
+      "id": "gdelt",
+      "name": "GDELT Project 2.0",
+      "description": "Global Database of Events, Language, and Tone...",
+      "contentIdentity": "news",
+      "requiresApiKey": false,
+      "isApiKeyConfigured": true,
+      "status": "healthy",
+      "responseTimeMs": 340
+    },
+    {
+      "id": "gutendex",
+      "name": "Gutendex Project Gutenberg",
+      "description": "Public-domain classic literature and philosophical treatises",
+      "contentIdentity": "books",
+      "requiresApiKey": false,
+      "isApiKeyConfigured": true,
+      "status": "healthy",
+      "responseTimeMs": 280
+    }
+  ]
+}
+```
+
+#### 34. Check Provider Health Status & Response Times
+```http
+GET /api/providers/health
+GET /api/providers/health?refresh=true
+```
+**Sample Response (HTTP 200):**
+```json
+{
+  "timestamp": "2026-11-02T16:00:00Z",
+  "overallStatus": "healthy",
+  "summary": {
+    "total": 10,
+    "healthy": 9,
+    "degraded": 1,
+    "down": 0
+  },
+  "providers": [
+    {
+      "providerId": "gutendex",
+      "name": "Gutendex Project Gutenberg",
+      "contentIdentity": "books",
+      "status": "healthy",
+      "responseTimeMs": 312,
+      "requiresApiKey": false,
+      "isApiKeyConfigured": true,
+      "lastCheckedAt": "2026-11-02T16:00:00Z"
+    }
+  ]
+}
+```
+
+#### 35. Trigger Multi-Provider Synchronization
+```http
+POST /api/providers/sync
+POST /api/providers/sync?provider=devto
+Content-Type: application/json
+
+{
+  "limit": 10,
+  "category": "technology-ai"
+}
+```
+**Sample Response (HTTP 200):**
+```json
+{
+  "success": true,
+  "message": "Multi-provider synchronization run completed.",
+  "totalIngested": 14,
+  "totalDuplicates": 4,
+  "totalArticlesInStore": 42,
+  "logs": [
+    {
+      "id": "sync_devto_1730560000000",
+      "providerId": "devto",
+      "status": "success",
+      "fetchedCount": 10,
+      "ingestedCount": 8,
+      "duplicateCount": 2,
+      "durationMs": 380,
+      "timestamp": "2026-11-02T16:00:00Z"
+    }
+  ]
+}
+```
+
+#### 36. Get Provider Sync Audit Logs
+```http
+GET /api/providers/sync-logs?limit=20
+```
+Returns chronological synchronization audit runs including ingested counts, deduplication hits, and rate-limit backoff events.
 
 ---
 

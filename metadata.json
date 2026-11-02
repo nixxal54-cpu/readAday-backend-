@@ -1,0 +1,6 @@
+{
+  "name": "readAday Backend & Discovery Platform",
+  "description": "Production-ready backend for readAday featuring Supabase/PostgreSQL schema, strict content feed separation, editorial review workflow, automated news ingestion, community moderation, and the Rabbit Hole discovery engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

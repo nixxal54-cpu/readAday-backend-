@@ -561,6 +561,19 @@ export class BackendStore {
       articleIds: ['art-ed-1', 'art-com-1'],
       createdAt: '2026-10-28T12:05:00Z',
     });
+    this.personalCollections.set('pcol-admin-1', {
+      id: 'pcol-admin-1',
+      userId: 'usr-admin-1',
+      name: 'Essential Deep Dives',
+      description: 'Curated personal reading on architectural cognition and machine reasoning.',
+      isPrivate: false,
+      articleIds: ['art-ed-1', 'art-ed-2'],
+      createdAt: '2026-10-30T10:00:00Z',
+    });
+
+    // Seed follow relationships
+    this.follows.add('usr-reader-1_usr-writer-1');
+    this.follows.add('usr-admin-1_usr-writer-1');
 
     // 10. Writer Applications
     this.writerApplications.set('app-1', {

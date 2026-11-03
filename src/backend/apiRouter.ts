@@ -5,7 +5,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { store } from './store.ts';
-import { UserRole, ContentType, ArticleStatus } from './types.ts';
+import { UserRole, ContentType, ArticleStatus, Article } from './types.ts';
 import { filterFeedArticles, assertFeedPurity } from './logic/feedSeparation.ts';
 import { validateStateTransition, validateArticleCreation, hasPermission } from './logic/rbacWorkflow.ts';
 import { calculateReadingTime, generateSlug, validateArticleInput } from './logic/readingTime.ts';
@@ -813,7 +813,7 @@ apiRouter.post('/editorial/collections', (req: Request, res: Response) => {
   };
 
   store.curatedCollections.set(newCol.id, newCol);
-  const articles = newCol.articleIds.map((id) => store.articles.get(id)).filter(Boolean);
+  const articles = newCol.articleIds.map((id: string) => store.articles.get(id)).filter(Boolean);
 
   res.status(201).json({
     success: true,
@@ -1521,7 +1521,7 @@ apiRouter.post('/reader/collections', (req: Request, res: Response) => {
   };
 
   store.personalCollections.set(col.id, col);
-  const articles = col.articleIds.map((id) => store.articles.get(id)).filter(Boolean);
+  const articles = col.articleIds.map((id: string) => store.articles.get(id)).filter(Boolean);
 
   res.status(201).json({
     success: true,

@@ -252,3 +252,5 @@ export interface RabbitHoleNode {
   affinityScore: number;
   connectionReason: string;
 }
+
+export type { FeedResponse } from './logic/feedSeparation.ts';

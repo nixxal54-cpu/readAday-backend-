@@ -98,6 +98,18 @@ export const FeedMonitor: React.FC<FeedMonitorProps> = ({ onSelectArticle, activ
       badge: 'Independent Voices',
       color: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10',
     },
+    discover: {
+      title: 'Discover Feed',
+      desc: 'Academic preprints, scientific research, and developer publications from arXiv, OpenAlex, DEV, and Hashnode.',
+      badge: 'Academic & Tech',
+      color: 'border-cyan-500/40 text-cyan-400 bg-cyan-500/10',
+    },
+    books: {
+      title: 'Public Domain Books Feed',
+      desc: 'Complete classic literature, historical masterpieces, and public domain texts via Project Gutenberg.',
+      badge: 'Literary Canon',
+      color: 'border-amber-500/40 text-amber-400 bg-amber-500/10',
+    },
   };
 
   return (
@@ -198,7 +210,7 @@ export const FeedMonitor: React.FC<FeedMonitorProps> = ({ onSelectArticle, activ
         <div className="p-12 text-center text-slate-500 text-sm">Querying isolated {activeFeed} feed...</div>
       ) : feedData && feedData.items.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {feedData.items.map((article) => {
+          {feedData.items.map((article: Article) => {
             const isBookmarked = bookmarkedIds.has(article.id);
             return (
               <div
@@ -248,7 +260,7 @@ export const FeedMonitor: React.FC<FeedMonitorProps> = ({ onSelectArticle, activ
                   <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-col space-y-2">
                     {/* Tags */}
                     <div className="flex flex-wrap gap-1">
-                      {article.tags.slice(0, 3).map((tag) => (
+                      {article.tags.slice(0, 3).map((tag: string) => (
                         <span key={tag} className="text-[10px] text-slate-400 bg-slate-800/60 px-1.5 py-0.5 rounded">
                           #{tag}
                         </span>

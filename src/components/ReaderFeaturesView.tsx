@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HighlightAndNote, ReadingBookmark, ReadingHistory, Article } from '../backend/types.ts';
-import { Bookmark, HighlightingIcon, Lock, Sparkles, FolderPlus, Trash2, BookOpen, Clock } from 'lucide-react';
+import { Bookmark, Highlighter, Lock, Sparkles, FolderPlus, Trash2, BookOpen, Clock } from 'lucide-react';
 
 interface ReaderFeaturesViewProps {
   activeUserId: string;

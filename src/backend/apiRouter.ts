@@ -1812,3 +1812,103 @@ apiRouter.post('/system/scheduler/run-news', async (_req: Request, res: Response
   const results = await scheduler.runManualNewsIngestion();
   res.json({ success: true, results });
 });
+
+// ==============================================================================
+// 9. CONTENT PROVIDER ORCHESTRATION & LIVE SYNC ENDPOINTS
+// ==============================================================================
+
+// GET /api/providers (List 10 content providers, identities, & health)
+apiRouter.get('/providers', async (_req: Request, res: Response) => {
+  const adapters = providerRegistry.getAllAdapters();
+  const healthList = providerRegistry.getHealthStatuses();
+  const healthMap = new Map(healthList.map((h) => [h.providerId, h]));
+
+  const providers = adapters.map((a) => {
+    const health = healthMap.get(a.id);
+    const articlesCount = Array.from(store.articles.values()).filter(
+      (art) => art.authorId === `provider-${a.id}` || art.id.startsWith(`${a.id}_`) || art.id.startsWith(`gutenberg_`) || art.id.startsWith(`wiki_`) || art.id.startsWith(`arxiv_`) || art.id.startsWith(`devto_`)
+    ).length;
+
+    return {
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      contentIdentity: a.contentIdentity,
+      requiresApiKey: a.requiresApiKey,
+      envKeyName: a.envKeyName,
+      status: health?.status || 'healthy',
+      responseTimeMs: health?.responseTimeMs || 0,
+      lastSyncAt: health?.lastSyncAt,
+      ingestedArticlesCount: articlesCount,
+    };
+  });
+
+  res.json({
+    total: providers.length,
+    providers,
+  });
+});
+
+// GET /api/providers/health (Live probe health check of all providers)
+apiRouter.get('/providers/health', async (_req: Request, res: Response) => {
+  const health = await providerRegistry.checkAllHealth();
+  res.json({ health });
+});
+
+// GET /api/providers/logs (Historical provider sync audit logs)
+apiRouter.get('/providers/logs', (_req: Request, res: Response) => {
+  const logs = providerRegistry.getSyncLogs();
+  res.json({ logs });
+});
+
+// POST /api/providers/sync (Execute live sync for all or specific provider)
+apiRouter.post('/providers/sync', async (req: Request, res: Response) => {
+  const providerId = (req.body?.providerId as string) || (req.query?.providerId as string);
+  const limit = parseInt((req.body?.limit as string) || (req.query?.limit as string) || '8', 10);
+
+  try {
+    if (providerId && providerId !== 'all') {
+      const log = await providerRegistry.syncProvider(providerId as any, { limit });
+      const currentArticlesCount = store.articles.size;
+      return res.json({
+        success: log.status !== 'failed',
+        log,
+        totalArticlesInStore: currentArticlesCount,
+      });
+    }
+
+    const logs = await providerRegistry.syncAllProviders({ limit });
+    const currentArticlesCount = store.articles.size;
+    res.json({
+      success: true,
+      logs,
+      totalArticlesInStore: currentArticlesCount,
+      ingestedThisRun: logs.reduce((acc, l) => acc + l.ingestedCount, 0),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/providers/live/:providerId (Direct live fetch probe)
+apiRouter.get('/providers/live/:providerId', async (req: Request, res: Response) => {
+  const providerId = req.params.providerId;
+  const adapter = providerRegistry.getAdapter(providerId as any);
+  if (!adapter) {
+    return res.status(404).json({ error: `Provider ${providerId} not found` });
+  }
+
+  try {
+    const items = await adapter.fetchContent({ limit: 5 });
+    res.json({
+      providerId,
+      name: adapter.name,
+      contentIdentity: adapter.contentIdentity,
+      itemsCount: items.length,
+      items,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+

@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { ContentType, Article, FeedResponse } from '../backend/types.ts';
-import { ShieldCheck, Clock, Bookmark, ThumbsUp, MessageSquare, ExternalLink, Filter, Search, AlertTriangle, Layers } from 'lucide-react';
+import {
+  ShieldCheck,
+  Clock,
+  Bookmark,
+  ThumbsUp,
+  MessageSquare,
+  ExternalLink,
+  Filter,
+  Search,
+  AlertTriangle,
+  Layers,
+  RefreshCw,
+  Sparkles,
+  Globe,
+} from 'lucide-react';
 
 interface FeedMonitorProps {
   onSelectArticle: (article: Article) => void;
@@ -13,7 +27,33 @@ export const FeedMonitor: React.FC<FeedMonitorProps> = ({ onSelectArticle, activ
   const [category, setCategory] = useState('all');
   const [feedData, setFeedData] = useState<FeedResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+
+  const handleSyncLiveProviders = async () => {
+    setIsSyncing(true);
+    setSyncMessage('Synchronizing real data from arXiv, DEV.to, Gutendex, Wikipedia & RSS...');
+    try {
+      const res = await fetch('/api/providers/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-readaday-user-id': activeUserId },
+        body: JSON.stringify({ limit: 6 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncMessage(`Synced successfully! Ingested ${data.ingestedThisRun || 0} new articles from real providers.`);
+        await fetchFeed();
+      } else {
+        setSyncMessage(`Sync notice: ${data.error || 'Failed to sync'}`);
+      }
+    } catch (err: any) {
+      setSyncMessage(`Sync error: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncMessage(null), 5000);
+    }
+  };
 
   const fetchFeed = async () => {
     setIsLoading(true);
@@ -127,32 +167,54 @@ export const FeedMonitor: React.FC<FeedMonitorProps> = ({ onSelectArticle, activ
           </p>
         </div>
 
-        {/* Live Zero-Contamination Audit Status */}
-        <div className="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-slate-950 border border-slate-800">
-          <ShieldCheck className="h-5 w-5 text-emerald-400 shrink-0" />
-          <div className="text-left">
-            <div className="text-xs font-semibold text-emerald-400 flex items-center">
-              Purity Audit: Passed
-              <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-            </div>
-            <div className="text-[11px] text-slate-400">
-              0 cross-type items detected in {activeFeed} feed
+        {/* Live Zero-Contamination Audit Status & Sync Trigger */}
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleSyncLiveProviders}
+            disabled={isSyncing}
+            className="flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium text-xs shadow-md shadow-emerald-950 transition-all cursor-pointer"
+            title="Fetch and ingest fresh real content from arXiv, DEV.to, Gutendex, Wikipedia, and RSS"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing Real Feeds...' : 'Sync Live Feeds (10 APIs)'}</span>
+          </button>
+
+          <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800">
+            <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+            <div className="text-left">
+              <div className="text-xs font-semibold text-emerald-400 flex items-center">
+                Purity: Passed
+                <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+              </div>
+              <div className="text-[10px] text-slate-400">
+                0 cross-type in {activeFeed}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Sync Status Banner */}
+      {syncMessage && (
+        <div className="p-3 rounded-lg bg-emerald-950/70 border border-emerald-800 text-emerald-200 text-xs flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
+            <span>{syncMessage}</span>
+          </div>
+        </div>
+      )}
+
       {/* Feed Selectors & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        {/* Feed Buttons */}
-        <div className="flex items-center space-x-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
-          {(['editorial', 'news', 'community'] as ContentType[]).map((feed) => {
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        {/* Feed Buttons - All 5 Strict Identities */}
+        <div className="flex items-center space-x-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
+          {(['editorial', 'news', 'community', 'discover', 'books'] as ContentType[]).map((feed) => {
             const isSelected = activeFeed === feed;
             return (
               <button
                 key={feed}
                 onClick={() => setActiveFeed(feed)}
-                className={`px-4 py-2 text-xs font-medium rounded-lg capitalize transition-all ${
+                className={`px-3.5 py-1.5 text-xs font-medium rounded-lg capitalize whitespace-nowrap transition-all ${
                   isSelected
                     ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -166,14 +228,14 @@ export const FeedMonitor: React.FC<FeedMonitorProps> = ({ onSelectArticle, activ
 
         {/* Search & Category Filter */}
         <div className="flex items-center space-x-3">
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
               placeholder="Search in feed..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-slate-900 border border-slate-800 text-xs text-slate-200 pl-8 pr-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-500/50 w-44 sm:w-56"
+              className="bg-slate-900 border border-slate-800 text-xs text-slate-200 pl-8 pr-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-500/50 w-full sm:w-56"
             />
           </div>
 
@@ -278,11 +340,11 @@ export const FeedMonitor: React.FC<FeedMonitorProps> = ({ onSelectArticle, activ
                       </div>
                     </div>
 
-                    {/* Rights Attribution for News */}
-                    {article.contentType === 'news' && (
-                      <div className="text-[10px] text-slate-400 flex items-center justify-between bg-slate-950/60 px-2 py-1 rounded border border-slate-800">
-                        <span className="font-mono text-blue-400">
-                          {article.contentRights === 'fair_use_summary' ? 'Fair-Use Summary' : 'Licensed Full Text'}
+                    {/* Live Provider Attribution */}
+                    {(article.sourcePublisher || article.originalUrl) && (
+                      <div className="text-[10px] text-slate-400 flex items-center justify-between bg-slate-950/80 px-2 py-1 rounded border border-slate-800">
+                        <span className="font-mono text-amber-400/90 truncate mr-2">
+                          {article.sourcePublisher || 'Live Provider'}
                         </span>
                         {article.originalUrl && (
                           <a
@@ -290,7 +352,7 @@ export const FeedMonitor: React.FC<FeedMonitorProps> = ({ onSelectArticle, activ
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-amber-400 hover:underline flex items-center"
+                            className="text-amber-400 hover:text-amber-300 hover:underline flex items-center shrink-0 font-medium"
                           >
                             Source <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
                           </a>

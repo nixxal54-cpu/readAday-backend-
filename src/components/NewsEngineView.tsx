@@ -18,6 +18,9 @@ export const NewsEngineView: React.FC<NewsEngineViewProps> = ({ activeUserId, on
   const [newSourceUrl, setNewSourceUrl] = useState('');
   const [newSourceLicense, setNewSourceLicense] = useState<ContentRights>('fair_use_summary');
 
+  const [providers, setProviders] = useState<any[]>([]);
+  const [isSyncingProviders, setIsSyncingProviders] = useState(false);
+
   const fetchSources = async () => {
     try {
       const res = await fetch('/api/news/sources', {
@@ -30,9 +33,45 @@ export const NewsEngineView: React.FC<NewsEngineViewProps> = ({ activeUserId, on
     }
   };
 
+  const fetchProviders = async () => {
+    try {
+      const res = await fetch('/api/providers');
+      const data = await res.json();
+      setProviders(data.providers || []);
+    } catch (err) {
+      console.error('Failed to load providers:', err);
+    }
+  };
+
   useEffect(() => {
     fetchSources();
+    fetchProviders();
   }, [activeUserId]);
+
+  const handleSyncProviders = async (providerId?: string) => {
+    setIsSyncingProviders(true);
+    setStatusMessage(providerId ? `Syncing ${providerId}...` : 'Syncing all 10 content providers concurrently...');
+    try {
+      const res = await fetch('/api/providers/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ providerId: providerId || 'all', limit: 6 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatusMessage(`Live Provider Sync Complete! Total articles in platform: ${data.totalArticlesInStore}`);
+        fetchProviders();
+        onRefreshFeed();
+      } else {
+        setStatusMessage(`Sync error: ${data.error || 'Failed'}`);
+      }
+    } catch (err: any) {
+      setStatusMessage(`Sync error: ${err.message}`);
+    } finally {
+      setIsSyncingProviders(false);
+      setTimeout(() => setStatusMessage(null), 6000);
+    }
+  };
 
   const handleRunIngest = async (sourceId?: string) => {
     setIsRunning(true);
@@ -160,9 +199,68 @@ export const NewsEngineView: React.FC<NewsEngineViewProps> = ({ activeUserId, on
         </div>
       )}
 
+      {/* 10 Real Centralized Content Providers */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-serif font-bold text-slate-200 flex items-center space-x-2">
+              <Globe className="h-4 w-4 text-emerald-400" />
+              <span>10 Real Content Providers (Centralized Architecture)</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Strictly partitioned across Editorial, News, Community, Discover, and Books with Fair-Use attribution.
+            </p>
+          </div>
+
+          <button
+            onClick={() => handleSyncProviders()}
+            disabled={isSyncingProviders}
+            className="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs shadow-md shadow-emerald-950 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCw className={`h-3 w-3 ${isSyncingProviders ? 'animate-spin' : ''}`} />
+            <span>{isSyncingProviders ? 'Syncing...' : 'Sync All 10 Providers'}</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {providers.map((p) => (
+            <div key={p.id} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-100">{p.name}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono uppercase font-semibold ${
+                    p.status === 'healthy' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                    p.status === 'degraded' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
+                    'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                  }`}>
+                    {p.status}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{p.description}</p>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                <span className="font-mono text-slate-300 text-[10px] px-2 py-0.5 rounded bg-slate-950 border border-slate-800 uppercase">
+                  Feed: {p.contentIdentity}
+                </span>
+
+                <button
+                  onClick={() => handleSyncProviders(p.id)}
+                  disabled={isSyncingProviders}
+                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 text-[10px] font-medium transition-colors cursor-pointer"
+                >
+                  Sync {p.id}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Registered News Sources */}
       <div className="space-y-4">
-        <h3 className="text-sm font-serif font-bold text-slate-200">Authorized News Sources & Feeds</h3>
+        <h3 className="text-sm font-serif font-bold text-slate-200">Authorized RSS Feeds & Custom Sources</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {sources.map((src) => (
             <div key={src.id} className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 space-y-3">

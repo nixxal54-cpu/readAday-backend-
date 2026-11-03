@@ -38,11 +38,12 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/api', (_req: Request, res: Response) => {
   res.json({
     platform: 'readAday Backend Engine',
-    version: '1.0.0',
+    version: '1.1.0',
     documentation: '/api/system/schema',
     endpoints: {
       auth: ['/api/auth/me', '/api/auth/profile', '/api/auth/switch-role', '/api/auth/users'],
-      content: ['/api/articles?feed=editorial|news|community', '/api/articles/:id', '/api/articles/:id/workflow'],
+      content: ['/api/articles?feed=editorial|news|community|discover|books', '/api/articles/:id', '/api/articles/:id/workflow'],
+      providers: ['/api/providers', '/api/providers/health', '/api/providers/logs', '/api/providers/sync', '/api/providers/live/:id'],
       editorial: ['/api/editorial/dashboard', '/api/editorial/featured', '/api/editorial/collections'],
       newsEngine: ['/api/news/sources', '/api/news/ingest'],
       community: ['/api/community/apply-writer', '/api/community/applications', '/api/community/reports'],

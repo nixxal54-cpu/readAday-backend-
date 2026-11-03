@@ -197,29 +197,41 @@ export class ContentProviderRegistry {
    * Synchronize all 10 providers in parallel with isolated boundaries
    */
   public async syncAllProviders(options: ProviderFetchOptions = {}): Promise<ProviderSyncLog[]> {
-    const results: ProviderSyncLog[] = [];
     const adapters = this.getAllAdapters();
-
-    for (const adapter of adapters) {
+    const promises = adapters.map(async (adapter) => {
       try {
-        const log = await this.syncProvider(adapter.id, options);
-        results.push(log);
+        return await this.syncProvider(adapter.id, options);
       } catch (err: any) {
-        results.push({
+        return {
           id: `sync_err_${adapter.id}_${Date.now()}`,
           providerId: adapter.id,
-          status: 'failed',
+          status: 'failed' as const,
           fetchedCount: 0,
           ingestedCount: 0,
           duplicateCount: 0,
           errorMessage: err?.message,
           durationMs: 0,
           timestamp: new Date().toISOString(),
-        });
+        };
       }
-    }
+    });
 
-    return results;
+    const settled = await Promise.allSettled(promises);
+    return settled.map((r, i) =>
+      r.status === 'fulfilled'
+        ? r.value
+        : {
+            id: `sync_err_${adapters[i].id}_${Date.now()}`,
+            providerId: adapters[i].id,
+            status: 'failed' as const,
+            fetchedCount: 0,
+            ingestedCount: 0,
+            duplicateCount: 0,
+            errorMessage: 'Sync execution failed',
+            durationMs: 0,
+            timestamp: new Date().toISOString(),
+          }
+    );
   }
 
   /**

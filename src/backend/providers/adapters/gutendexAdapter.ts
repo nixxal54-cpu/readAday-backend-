@@ -16,12 +16,14 @@ export class GutendexAdapter extends BaseProviderAdapter {
   readonly requiresApiKey = false;
 
   async fetchContent(options: ProviderFetchOptions = {}): Promise<NormalizedProviderItem[]> {
-    const query = options.query || options.category || 'philosophy';
+    const query = options.query || options.category || '';
     const page = options.page || 1;
     const limit = Math.min(options.limit || 8, 20);
 
-    const encoded = encodeURIComponent(query);
-    const url = `https://gutendex.com/books/?search=${encoded}&page=${page}`;
+    let url = `https://gutendex.com/books/?languages=en&page=${page}`;
+    if (query && query !== 'philosophy' && query !== 'all') {
+      url += `&search=${encodeURIComponent(query)}`;
+    }
 
     const res = await this.safeFetch(url, {}, 8000, 1);
     if (!res.ok) {

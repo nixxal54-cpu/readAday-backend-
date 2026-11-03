@@ -19,6 +19,7 @@ export interface SchedulerStatus {
 class BackgroundScheduler {
   private publishIntervalTimer: NodeJS.Timeout | null = null;
   private newsIntervalTimer: NodeJS.Timeout | null = null;
+  private providerSyncIntervalTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
   private lastPublishCheck = new Date().toISOString();
   private lastNewsPoll = new Date().toISOString();
@@ -34,13 +35,24 @@ class BackgroundScheduler {
       this.checkAndPublishScheduledArticles();
     }, 30000);
 
+    // Run automated provider synchronization every 5 minutes
+    this.providerSyncIntervalTimer = setInterval(() => {
+      this.runProviderSync().catch((err) => console.error('[Scheduler] Provider sync failed:', err?.message));
+    }, 5 * 60 * 1000);
+
     // Initial check on startup
     this.checkAndPublishScheduledArticles();
+
+    // Trigger initial live provider sync immediately in background
+    setTimeout(() => {
+      this.runProviderSync().catch((err) => console.error('[Scheduler] Initial provider sync failed:', err?.message));
+    }, 300);
   }
 
   public stop() {
     if (this.publishIntervalTimer) clearInterval(this.publishIntervalTimer);
     if (this.newsIntervalTimer) clearInterval(this.newsIntervalTimer);
+    if (this.providerSyncIntervalTimer) clearInterval(this.providerSyncIntervalTimer);
     this.isRunning = false;
   }
 
